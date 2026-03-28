@@ -8,7 +8,7 @@ def get_db_connection():
     db_path = os.path.join(os.path.dirname(__file__), "..", "argus.db")
     return sqlite3.connect(db_path)
 
-@st.cache_data
+# Removed cache to ensure live DB reads
 def fetch_dash_cases():
     conn = get_db_connection()
     df = pd.read_sql("SELECT * FROM cases", conn)
@@ -70,25 +70,34 @@ with st.container(border=True):
             st.button("EXPORT", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
         
+    st.markdown("""<style>.dash-card { border:1px solid #EFEBEB; border-radius:8px; padding:16px 24px; background-color:#ffffff; transition:box-shadow 0.2s ease, background-color 0.2s ease; margin-bottom:12px; display:block; text-decoration:none !important; color:inherit !important; } .dash-card:hover { background-color:#fafafa; box-shadow:0 4px 12px rgba(0,0,0,0.05); }</style>""", unsafe_allow_html=True)
     df = fetch_dash_cases().head(5) # Limit Dashboard to top 5 cases
     for idx, row in df.iterrows():
-        with st.container(border=True):
-            c_id, c_ent, c_risk, c_stat, c_act = st.columns([1, 3, 2, 2, 1], vertical_alignment="center")
-            with c_id:
-                st.markdown(f"<span style='font-weight:700; color:#4A192C;'>{row['ID']}</span>", unsafe_allow_html=True)
-            with c_ent:
-                st.markdown(f"**{row['COUNTRY']} {row['ENTITY_NAME']}**<br/><span style='font-size:12px; color:#8C7C83;'>{row['TYPE']}</span>", unsafe_allow_html=True)
-            with c_risk:
-                st.markdown(f"<div style='font-size:12px; margin-bottom:4px; font-weight:600;'>RISK SCORE: {row['RISK_SCORE']:.1f}</div>", unsafe_allow_html=True)
-                st.progress(int(row['RISK_SCORE']))
-            with c_stat:
-                color = "#E53E3E" if row['STATUS'] == "Pending Review" else ("#D69E2E" if "Investigation" in row['STATUS'] else "#38A169")
-                st.markdown(f"<div style='background-color:{color}; color:white; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:600; text-align:center; display:inline-block;'>{row['STATUS']}</div>", unsafe_allow_html=True)
-            with c_act:
-                if st.button("Review", key=f"dash_btn_{row['ID']}", use_container_width=True):
-                    st.session_state['selected_case'] = row['ID']
-                    
-    if 'selected_case' in st.session_state:
-        st.success(f"Case {st.session_state['selected_case']} selected from Dashboard queue.")
+        color = "#E53E3E" if row['STATUS'] == "Pending Review" else ("#D69E2E" if "Investigation" in row['STATUS'] else "#38A169")
+        card_html = f"""<a href="cases?selected_case={row['ID']}" target="_self" class="dash-card">
+<div style="display: flex; align-items: center; justify-content: space-between; font-family: 'Inter', sans-serif;">
+<div style="display: flex; flex-direction: column; width: 40%;">
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
+<img src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/{row['FLAG_URL']}" style="width: 24px; height: 24px;" alt="Flag" />
+<span style="font-weight: 700; font-size: 16px; color: #1a1c1d;">{row['ENTITY_NAME']}</span>
+</div>
+<span style="font-size: 11px; color: #8C7C83; font-weight: 700; letter-spacing: 0.5px; margin-left: 36px;">{row['TYPE']}</span>
+</div>
+<div style="width: 25%;">
+<div style="font-size: 10px; font-weight: 700; color: #524346; margin-bottom: 6px;">RISK SCORE: {row['RISK_SCORE']:.1f}</div>
+<div style="width: 100%; height: 6px; background-color: #f3f3f5; border-radius: 3px; overflow: hidden;">
+<div style="width: {row['RISK_SCORE']}%; height: 100%; background-color: #4A192C; border-radius: 3px;"></div>
+</div>
+</div>
+<div style="width: 15%;">
+<div style="font-size: 10px; font-weight: 700; color: #8C7C83; margin-bottom: 2px;">AI CONFIDENCE</div>
+<div style="font-weight: 700; font-size: 14px; color: #1a1c1d;">{row['AI_CONFIDENCE']}</div>
+</div>
+<div style="width: 15%; text-align: right;">
+<span style="background-color: {color}; color: white; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 700; display: inline-block;">{row['STATUS']}</span>
+</div>
+</div>
+</a>"""
+        st.markdown(card_html, unsafe_allow_html=True)
         
     st.markdown("<div style='text-align:center; margin-top:16px; font-size:14px; font-weight:600;'><a href='/cases' style='color:#2D1A22; text-decoration:none;'>View All Active Cases</a></div>", unsafe_allow_html=True)

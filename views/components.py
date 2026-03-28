@@ -38,6 +38,21 @@ def render_topbar():
         
     st.markdown("<hr style='margin-top: 8px; margin-bottom: 24px; border-top: 1px solid #EFEBEB;'/>", unsafe_allow_html=True)
 
-def render_breadcrumbs(current_page: str):
-    # Native Streamlit SPA routing component ensuring no hard reloads and no new tabs
-    st.page_link("views/dashboard.py", label=f"**ARGUS** &nbsp;›&nbsp; {current_page}")
+def render_breadcrumbs(path_data):
+    if isinstance(path_data, str):
+        path_data = [("ARGUS", "/"), (path_data, None)]
+        
+    html_parts = []
+    for title, link in path_data:
+        if link:
+            html_parts.append(f"<a href='{link}' target='_self' style='color: #8C7C83; text-decoration: none; font-weight: 600; padding: 0px 4px;'>{title}</a>")
+        else:
+            html_parts.append(f"<span style='color: #2D1A22; font-weight: 600; padding: 0px 4px;'>{title}</span>")
+            
+    bc_html = "<span style='color: #8C7C83; font-size: 16px;'>›</span>".join(html_parts)
+    
+    st.markdown(f"""
+    <div style="font-size: 14px; font-weight: 500; font-family: 'Inter', sans-serif; padding-left: 4px; margin-bottom: 12px; display: flex; align-items: center; gap: 4px;">
+        {bc_html}
+    </div>
+    """, unsafe_allow_html=True)
